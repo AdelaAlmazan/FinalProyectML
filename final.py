@@ -4,13 +4,13 @@ from PIL import Image
 import tensorflow as tf
 import tensorflow_hub as hub
 import joblib
+from collections import Counter
 
 # Cargar modelos previamente entrenados
 svm_model = joblib.load('svm_model.sav')
 decision_tree_model = joblib.load('decisionTreeClassifier.sav')
 logistic_model = joblib.load('logistic_model.sav')
 random_forest = joblib.load('RandomForest.sav')
-
 
 # Cargar el extractor de características
 url = "https://tfhub.dev/google/tf2-preview/mobilenet_v2/feature_vector/4"
@@ -36,9 +36,20 @@ def predict(model, image):
 # Función para obtener la etiqueta de la emoción
 def predict_and_label(model, image):
     prediction = predict(model, image)
-    # Obtener la etiqueta de la emoción correspondiente
     emotion = emotion_labels[prediction[0]]
     return emotion
+
+# Función para realizar ensamble de predicciones
+def ensemble_predictions(image):
+    predictions = [
+        predict_and_label(svm_model, image),
+        predict_and_label(decision_tree_model, image),
+        predict_and_label(logistic_model, image),
+        predict_and_label(random_forest, image)
+    ]
+    # Realizar una votación mayoritaria
+    most_common = Counter(predictions).most_common(1)
+    return most_common[0][0]
 
 # Crear la interfaz de Streamlit
 st.title("Clasificador de Emociones de Perros")
@@ -57,8 +68,13 @@ if uploaded_file is not None:
     emotion_dt = predict_and_label(decision_tree_model, preprocessed_image)
     emotion_lr = predict_and_label(logistic_model, preprocessed_image)
     emotion_rf = predict_and_label(random_forest, preprocessed_image)
+    
+    # Ensamble de predicciones
+    ensemble_prediction = ensemble_predictions(preprocessed_image)
+
     # Mostrar los resultados
     st.write(f"Predicción con SVM: {emotion_svm}")
     st.write(f"Predicción con Decision Tree: {emotion_dt}")
     st.write(f"Predicción con Logistic Regression: {emotion_lr}")
     st.write(f"Predicción con Random Forest: {emotion_rf}")
+    st.write(f"Predicción del Ensamble: {ensemble_prediction}")
