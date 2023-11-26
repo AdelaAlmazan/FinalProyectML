@@ -1,0 +1,9 @@
+streamlit
+joblib
+pandas
+scikit-learn==1.2.2
+numpy
+Pillow
+tensorflow
+tensorflow-hub
+
